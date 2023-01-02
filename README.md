@@ -15,8 +15,8 @@ This shows how BeautifulSoup can be used to scrape and parse websites.
 See ding.py for the single file script. It launches a periodic scheduled job to
 run every 20 minutes that scrapes a select mydealz group for the latest ten
 articles. If the articles differ to the previous results (or this is the first
-run), the script will send that list to [ntfy.sh][1] to notify an audience of new
-deals.
+run), the script will send the new items to [ntfy.sh][1] to notify an audience
+of new deals.
 
 Example:
 ```

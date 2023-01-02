@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import requests
 import sched
@@ -77,7 +79,7 @@ def get_dealz(group: str):
     return dealz
 
 
-def dnotify(dealz: list, ntfy_topic=None):
+def dnotify(dealz: list, ntfy_topic: str = None):
     for deal in dealz:
         print(deal)
         if ntfy_topic:
@@ -91,8 +93,13 @@ def periodic_job(scheduler, group, previous_dealz, ntfy_topic):
     print(f"[{time.ctime()}]: checking for new dealz...")
     dealz = get_dealz(group)
     if len(previous_dealz) == 0 or dealz[0]["title"] != previous_dealz[0]["title"]:
+        new_dealz = list(
+            filter(
+                lambda x: x["title"] not in [d["title"] for d in previous_dealz], dealz
+            )
+        )
         previous_dealz = dealz
-        dnotify(dealz, ntfy_topic=ntfy_topic)
+        dnotify(new_dealz, ntfy_topic=ntfy_topic)
     else:
         print(f"[{time.ctime()}]: no new dealz found.")
 
