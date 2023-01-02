@@ -6,7 +6,6 @@ import time
 import urllib.parse
 
 from bs4 import BeautifulSoup
-from gotify import Gotify
 
 # Global toggle to use cached test html rather than fetching actual content from the internet
 example_mode = False
@@ -78,49 +77,41 @@ def get_dealz(group: str):
     return dealz
 
 
-def dnotify(dealz: list, gotify=None):
+def dnotify(dealz: list, ntfy_topic=None):
     for deal in dealz:
         print(deal)
-        if gotify:
-            gotify.create_message(
-                f"{deal['price']} | {deal['merchant']}\n{deal['href']}",
-                title=f"{deal['title']} | {deal['price']}",
-                priority=0,
+        if ntfy_topic:
+            requests.post(
+                f"https://ntfy.sh/{ntfy_topic}",
+                data=f"{deal['title']} | {deal['price']}".encode(encoding="utf-8"),
             )
 
 
-def periodic_job(scheduler, group, previous_dealz, gotify):
+def periodic_job(scheduler, group, previous_dealz, ntfy_topic):
     print(f"[{time.ctime()}]: checking for new dealz...")
     dealz = get_dealz(group)
     if len(previous_dealz) == 0 or dealz[0]["title"] != previous_dealz[0]["title"]:
         previous_dealz = dealz
-        dnotify(dealz, gotify=gotify)
+        dnotify(dealz, ntfy_topic=ntfy_topic)
     else:
         print(f"[{time.ctime()}]: no new dealz found.")
 
     period = 20 * 60
     print(f"[{time.ctime()}]: sleeping {period} seconds...")
-    scheduler.enter(period, 1, periodic_job, (scheduler, group, previous_dealz, gotify))
+    scheduler.enter(
+        period, 1, periodic_job, (scheduler, group, previous_dealz, ntfy_topic)
+    )
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--example-mode", action="store_true", default=False)
-    parser.add_argument("--gotify-token", type=str)
-    parser.add_argument("--gotify-server", type=str)
+    parser.add_argument("--ntfy-topic", type=str)
     parser.add_argument("group", default="macbook-air")
     args = parser.parse_args()
 
     previous_dealz = []
     group = args.group
-
-    if args.gotify_server:
-        gotify = Gotify(
-            base_url=args.gotify_server,
-            app_token=args.gotify_token,
-        )
-    else:
-        gotify = None
 
     # Toggle using cached test html rather than fetching actual content from the internet
     if args.example_mode:
@@ -130,7 +121,7 @@ def main():
         group = "macbook-air"
 
     scheduler = sched.scheduler(time.time, time.sleep)
-    periodic_job(scheduler, args.group, previous_dealz, gotify)
+    periodic_job(scheduler, args.group, previous_dealz, args.ntfy_topic)
     scheduler.run()
 
 
